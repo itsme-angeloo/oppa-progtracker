@@ -135,7 +135,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
       if (data.user) {
         setUser({ id: data.user.id, email: data.user.email });
       } else {
-        setMessage("Sign in to open Progress OS.");
+        setMessage("Sign in to open Angelo's Progress OS.");
       }
     });
 
@@ -336,7 +336,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
       <main className="flex min-h-screen items-center justify-center bg-bg-void p-6">
         <Panel className="w-full max-w-md p-6">
           <div className="mb-6">
-            <Mono className="text-[10px] text-glow-cyan">PROGRESS OS</Mono>
+            <Mono className="text-[10px] text-glow-cyan">OPPA</Mono>
             <h1 className="mt-2 font-display text-2xl font-semibold">Owner access</h1>
             <p className="mt-2 text-sm text-text-muted">
               {supabase ? message : "Add Supabase env values to .env.local to connect the workspace."}
@@ -369,7 +369,10 @@ export function OwnerWorkspace({ view }: { view: View }) {
             <span className="absolute inset-1 rounded-sm border border-glow-cyan shadow-[0_0_6px_var(--glow-cyan)]" />
             <span className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-glow-cyan shadow-[0_0_4px_var(--glow-cyan)]" />
           </div>
-          <h1 className="font-display text-sm font-semibold uppercase tracking-[0.15em]">Progress OS</h1>
+          <div>
+            <Mono className="block text-[9px] text-glow-cyan">OPPA</Mono>
+            <h1 className="font-display text-sm font-semibold tracking-[0.02em]">Angelo&apos;s Progress OS</h1>
+          </div>
         </div>
         <nav className="p-3">
           {NAV_ITEMS.map((item) => {
@@ -500,7 +503,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
           {view === "settings" ? (
             <Panel className="p-5">
               <h3 className="font-display text-lg font-semibold">Settings</h3>
-              <p className="mt-2 text-sm text-text-muted">AI narration is optional. With `AI_PROVIDER=none`, Progress OS keeps using the rule-based engine.</p>
+              <p className="mt-2 text-sm text-text-muted">AI narration is optional. With `AI_PROVIDER=none`, Angelo&apos;s Progress OS keeps using the rule-based engine.</p>
             </Panel>
           ) : null}
         </div>

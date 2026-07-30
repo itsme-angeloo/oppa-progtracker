@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Progress OS",
-  description: "Personal command center for paused work, priorities, and shareable status.",
+  title: "OPPA - Angelo's Progress OS",
+  description: "Owned Project Progress App: Angelo's progress tracker for paused work, priorities, and shareable status.",
 };
 
 export default function RootLayout({
