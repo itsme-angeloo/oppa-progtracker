@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
+  CheckCircle2,
   ChevronRight,
   FolderKanban,
   LayoutDashboard,
@@ -103,6 +105,8 @@ function ActionButton({
 }
 
 export function OwnerWorkspace({ view }: { view: View }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -112,6 +116,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [message, setMessage] = useState("Loading workspace...");
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState<"project" | "activity" | "share-link" | null>(null);
 
   const supabase = useMemo(() => {
     try {
@@ -197,6 +202,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
   async function createProject(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !user) return;
+    const formElement = event.currentTarget;
     const form = new FormData(event.currentTarget);
     const payload = {
       owner_id: user.id,
@@ -217,15 +223,25 @@ export function OwnerWorkspace({ view }: { view: View }) {
       return;
     }
 
-    const { error } = await supabase.from("projects").insert(payload);
-    if (error) setMessage(error.message);
-    event.currentTarget.reset();
+    setSaving("project");
+    const { data, error } = await supabase.from("projects").insert(payload).select("id").single();
+    if (error) {
+      setMessage(error.message);
+      setSaving(null);
+      return;
+    }
+
+    formElement.reset();
     await refresh();
+    setMessage("Project created.");
+    setSaving(null);
+    router.push(`/projects/${data.id}`);
   }
 
   async function createActivity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !user) return;
+    const formElement = event.currentTarget;
     const form = new FormData(event.currentTarget);
     const payload = {
       owner_id: user.id,
@@ -242,10 +258,21 @@ export function OwnerWorkspace({ view }: { view: View }) {
       return;
     }
 
+    setSaving("activity");
     const { error } = await supabase.from("activities").insert(payload);
-    if (error) setMessage(error.message);
-    event.currentTarget.reset();
+    if (error) {
+      setMessage(error.message);
+      setSaving(null);
+      return;
+    }
+
+    formElement.reset();
     await refresh();
+    setMessage("Activity logged.");
+    setSaving(null);
+    if (pathname !== "/activity") {
+      router.push("/activity");
+    }
   }
 
   async function pauseProject(project: Project) {
@@ -312,16 +339,28 @@ export function OwnerWorkspace({ view }: { view: View }) {
   async function createShareLink(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !user) return;
+    const formElement = event.currentTarget;
     const form = new FormData(event.currentTarget);
+    setSaving("share-link");
     const { error } = await supabase.from("share_links").insert({
       owner_id: user.id,
       label: String(form.get("label") || "Status link"),
       scope_all: true,
       expires_at: String(form.get("expires_at") || "") || null,
     });
-    if (error) setMessage(error.message);
-    event.currentTarget.reset();
+    if (error) {
+      setMessage(error.message);
+      setSaving(null);
+      return;
+    }
+
+    formElement.reset();
     await refresh();
+    setMessage("Share link created.");
+    setSaving(null);
+    if (pathname !== "/share-links") {
+      router.push("/share-links");
+    }
   }
 
   async function revokeShareLink(link: ShareLink) {
@@ -362,8 +401,8 @@ export function OwnerWorkspace({ view }: { view: View }) {
   const completedProjects = projects.filter((project) => project.status === "completed").length;
 
   return (
-    <div className="flex min-h-screen bg-bg-void text-text-primary">
-      <aside className="hidden w-64 shrink-0 border-r border-border-subtle bg-bg-void lg:block">
+    <div className="min-h-screen bg-bg-void text-text-primary lg:pl-64">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-border-subtle bg-bg-void lg:flex lg:flex-col">
         <div className="flex h-16 items-center gap-3 border-b border-border-subtle px-5">
           <div className="relative h-7 w-7 rounded-sm border border-border-subtle bg-bg-void">
             <span className="absolute inset-1 rounded-sm border border-glow-cyan shadow-[0_0_6px_var(--glow-cyan)]" />
@@ -374,7 +413,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
             <h1 className="font-display text-sm font-semibold tracking-[0.02em]">Angelo&apos;s Progress OS</h1>
           </div>
         </div>
-        <nav className="p-3">
+        <nav className="min-h-0 flex-1 overflow-y-auto p-3">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = item.view === view;
@@ -394,7 +433,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
             );
           })}
         </nav>
-        <div className="absolute bottom-0 hidden w-64 border-t border-border-subtle p-4 lg:block">
+        <div className="border-t border-border-subtle p-4">
           <Mono className="block truncate text-[10px] text-text-muted">{user.email}</Mono>
           <button
             className="mt-2 text-xs text-text-muted hover:text-text-primary"
@@ -405,7 +444,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border-subtle bg-bg-void/95 px-4 backdrop-blur md:px-6">
           <div>
             <Mono className="text-[10px] text-text-muted">OWNER WORKSPACE</Mono>
@@ -414,7 +453,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
           <ActionButton onClick={() => void refresh()} tone="quiet">Refresh</ActionButton>
         </header>
         {message ? <div className="border-b border-border-subtle bg-glow-amber/10 px-4 py-2 text-sm text-glow-amber">{message}</div> : null}
-        <div className="grid gap-5 p-4 md:p-6">
+        <div data-page-transition className="grid gap-5 p-4 md:p-6">
           {view === "dashboard" ? (
             <>
               <div className="grid gap-3 md:grid-cols-3">
@@ -451,7 +490,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
 
           {view === "projects" ? (
             <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-              <ProjectForm onSubmit={createProject} />
+              <ProjectForm onSubmit={createProject} saving={saving === "project"} />
               <div className="grid gap-4 md:grid-cols-2">
                 {projects.map((project) => (
                   <ProjectCard key={project.id} project={project} pauseEvents={pauseEvents} actions={<ProjectActions project={project} onPause={pauseProject} onResume={resumeProject} />} />
@@ -463,7 +502,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
 
           {view === "activity" ? (
             <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-              <ActivityForm projects={projects} onSubmit={createActivity} />
+              <ActivityForm projects={projects} onSubmit={createActivity} saving={saving === "activity"} />
               <div className="grid gap-3">
                 {activities.map((activity) => (
                   <ActivityLogEntry key={activity.id} activity={activity} project={projects.find((project) => project.id === activity.project_id)} />
@@ -477,7 +516,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
 
           {view === "share-links" ? (
             <div className="grid gap-5 xl:grid-cols-[380px_1fr]">
-              <ShareLinkForm onSubmit={createShareLink} />
+              <ShareLinkForm onSubmit={createShareLink} saving={saving === "share-link"} />
               <div className="grid gap-3">
                 {shareLinks.map((link) => (
                   <Panel key={link.id} className="p-4">
@@ -501,10 +540,12 @@ export function OwnerWorkspace({ view }: { view: View }) {
           ) : null}
 
           {view === "settings" ? (
-            <Panel className="p-5">
-              <h3 className="font-display text-lg font-semibold">Settings</h3>
-              <p className="mt-2 text-sm text-text-muted">AI narration is optional. With `AI_PROVIDER=none`, Angelo&apos;s Progress OS keeps using the rule-based engine.</p>
-            </Panel>
+            <SettingsPanel
+              email={user.email}
+              projectCount={projects.length}
+              activityCount={activities.length}
+              shareLinkCount={shareLinks.filter((link) => !link.revoked).length}
+            />
           ) : null}
         </div>
       </main>
@@ -543,7 +584,13 @@ function ProjectActions({
   );
 }
 
-function ProjectForm({ onSubmit }: { onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> }) {
+function ProjectForm({
+  onSubmit,
+  saving,
+}: {
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  saving: boolean;
+}) {
   return (
     <Panel className="p-4">
       <div className="mb-4 flex items-center gap-2">
@@ -573,7 +620,9 @@ function ProjectForm({ onSubmit }: { onSubmit: (event: React.FormEvent<HTMLFormE
         <Field label="Target date"><input name="target_date" className={inputClass()} type="date" /></Field>
         <Field label="Repo link"><input name="repo_link" className={inputClass()} type="url" /></Field>
         <Field label="Doc link"><input name="doc_link" className={inputClass()} type="url" /></Field>
-        <ActionButton type="submit"><Plus size={14} /> Create project</ActionButton>
+        <ActionButton type="submit" disabled={saving}>
+          <Plus size={14} /> {saving ? "Creating..." : "Create project"}
+        </ActionButton>
       </form>
     </Panel>
   );
@@ -582,9 +631,11 @@ function ProjectForm({ onSubmit }: { onSubmit: (event: React.FormEvent<HTMLFormE
 function ActivityForm({
   projects,
   onSubmit,
+  saving,
 }: {
   projects: Project[];
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  saving: boolean;
 }) {
   return (
     <Panel className="p-4">
@@ -607,21 +658,85 @@ function ActivityForm({
         <label className="flex items-center gap-2 text-sm text-text-muted">
           <input name="is_public" type="checkbox" defaultChecked /> Public in guest view
         </label>
-        <ActionButton type="submit"><Plus size={14} /> Log activity</ActionButton>
+        <ActionButton type="submit" disabled={saving}>
+          <Plus size={14} /> {saving ? "Logging..." : "Log activity"}
+        </ActionButton>
       </form>
     </Panel>
   );
 }
 
-function ShareLinkForm({ onSubmit }: { onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void> }) {
+function ShareLinkForm({
+  onSubmit,
+  saving,
+}: {
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  saving: boolean;
+}) {
   return (
     <Panel className="p-4">
       <h2 className="mb-4 font-display text-sm font-semibold uppercase tracking-[0.14em]">New Share Link</h2>
       <form onSubmit={onSubmit} className="grid gap-3">
         <Field label="Label"><input name="label" className={inputClass()} placeholder="For manager" required /></Field>
         <Field label="Expires at"><input name="expires_at" className={inputClass()} type="datetime-local" /></Field>
-        <ActionButton type="submit" tone="violet"><Link2 size={14} /> Create link</ActionButton>
+        <ActionButton type="submit" tone="violet" disabled={saving}>
+          <Link2 size={14} /> {saving ? "Creating..." : "Create link"}
+        </ActionButton>
       </form>
     </Panel>
+  );
+}
+
+function SettingsPanel({
+  email,
+  projectCount,
+  activityCount,
+  shareLinkCount,
+}: {
+  email?: string;
+  projectCount: number;
+  activityCount: number;
+  shareLinkCount: number;
+}) {
+  const settingCards = [
+    ["OWNER", email || "Signed in", "Supabase Auth controls access."],
+    ["WORKSPACE DATA", `${projectCount} projects / ${activityCount} logs`, "Project and activity writes are live."],
+    ["SHARING", `${shareLinkCount} active links`, "Guest access stays read-only through the RPC."],
+    ["AI MODE", "Rule engine active", "AI narration can layer on later without blocking suggestions."],
+  ];
+
+  const nextSettings = [
+    "Profile preferences: display name, default project type, default public/private activity setting.",
+    "Suggestion controls: priority weight, stale-day threshold, and deadline urgency tuning.",
+    "Share defaults: expiration preset, guest visibility, and scoped-project link selection.",
+    "Data controls: export workspace JSON/CSV and archive completed projects in batches.",
+  ];
+
+  return (
+    <div className="grid gap-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {settingCards.map(([label, value, helper]) => (
+          <Panel key={label} className="p-4">
+            <Mono className="text-[9px] text-text-muted">{label}</Mono>
+            <div className="mt-2 min-h-8 font-display text-lg font-semibold">{value}</div>
+            <p className="mt-2 text-xs text-text-muted">{helper}</p>
+          </Panel>
+        ))}
+      </div>
+      <Panel className="p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Settings size={15} className="text-glow-cyan" />
+          <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em]">Settings Roadmap</h3>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {nextSettings.map((item) => (
+            <div key={item} className="flex gap-3 rounded border border-border-subtle bg-bg-void p-3">
+              <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-glow-green" />
+              <p className="text-sm text-text-muted">{item}</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
   );
 }
