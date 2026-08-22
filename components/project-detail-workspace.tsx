@@ -38,6 +38,7 @@ export function ProjectDetailWorkspace({ projectId }: { projectId: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [pauseEvents, setPauseEvents] = useState<PauseEvent[]>([]);
   const [message, setMessage] = useState("Loading project...");
+  const [saving, setSaving] = useState(false);
   const supabase = useMemo(() => {
     try {
       return createBrowserSupabaseClient();
@@ -96,13 +97,17 @@ export function ProjectDetailWorkspace({ projectId }: { projectId: string }) {
       return;
     }
 
+    setSaving(true);
     const { error } = await supabase.from("projects").update(payload).eq("id", project.id);
     if (error) {
       setMessage(error.message);
+      setSaving(false);
       return;
     }
 
     await refresh();
+    setMessage("Project saved.");
+    setSaving(false);
   }
 
   if (!project) {
@@ -129,7 +134,7 @@ export function ProjectDetailWorkspace({ projectId }: { projectId: string }) {
         <Mono className="text-[10px] text-text-muted">DETAIL / EDIT</Mono>
       </header>
       {message ? <div className="border-b border-border-subtle bg-glow-amber/10 px-4 py-2 text-sm text-glow-amber">{message}</div> : null}
-      <div className="grid gap-5 p-4 md:p-6 xl:grid-cols-[420px_1fr]">
+      <div data-page-transition className="grid gap-5 p-4 md:p-6 xl:grid-cols-[420px_1fr]">
         <div className="grid gap-5">
           <ProjectCard project={project} pauseEvents={pauseEvents} />
           <Panel className="p-4">
@@ -157,8 +162,11 @@ export function ProjectDetailWorkspace({ projectId }: { projectId: string }) {
               <Field label="Target date"><input name="target_date" className={inputClass()} type="date" defaultValue={project.target_date || ""} /></Field>
               <Field label="Repo link"><input name="repo_link" className={inputClass()} type="url" defaultValue={project.repo_link || ""} /></Field>
               <Field label="Doc link"><input name="doc_link" className={inputClass()} type="url" defaultValue={project.doc_link || ""} /></Field>
-              <button className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-glow-cyan/40 bg-glow-cyan/15 px-3 py-1.5 text-sm font-semibold text-glow-cyan hover:bg-glow-cyan/20">
-                <Save size={14} /> Save changes
+              <button
+                disabled={saving}
+                className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-glow-cyan/40 bg-glow-cyan/15 px-3 py-1.5 text-sm font-semibold text-glow-cyan transition hover:bg-glow-cyan/20 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Save size={14} /> {saving ? "Saving..." : "Save changes"}
               </button>
             </form>
           </Panel>
