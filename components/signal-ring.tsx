@@ -53,7 +53,7 @@ export function SignalRing({
           className={cfg.pulse ? "animate-[pulse-ring_2.4s_ease-in-out_infinite]" : undefined}
           style={{
             opacity: cfg.dim ? 0.32 : 1,
-            filter: cfg.dim ? "none" : "drop-shadow(0 0 4px currentColor) drop-shadow(0 0 10px color-mix(in srgb, currentColor 35%, transparent))",
+            filter: cfg.dim ? "none" : "drop-shadow(0 0 8px rgb(255 255 255 / 0.14))",
             transition: "stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)",
           }}
         />

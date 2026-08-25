@@ -423,7 +423,7 @@ export function OwnerWorkspace({ view }: { view: View }) {
                 href={`/${item.view === "dashboard" ? "dashboard" : item.view}`}
                 className={`mb-1 flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm transition ${
                   active
-                    ? "border-glow-cyan bg-bg-surface-raised text-text-primary shadow-[inset_0_0_12px_rgb(77_232_255_/_0.05)]"
+                    ? "border-glow-cyan bg-bg-surface-raised text-text-primary shadow-[inset_0_0_16px_rgb(255_255_255_/_0.05)]"
                     : "border-transparent text-text-muted hover:bg-bg-surface hover:text-text-primary"
                 }`}
               >
